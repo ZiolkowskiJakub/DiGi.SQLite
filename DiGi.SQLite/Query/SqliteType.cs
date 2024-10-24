@@ -18,6 +18,11 @@ namespace DiGi.SQLite
                 type_Temp = type;
             }
 
+            if(type_Temp.IsEnum)
+            {
+                return Microsoft.Data.Sqlite.SqliteType.Integer;
+            }
+
             if(type_Temp == typeof(bool))
             {
                 return Microsoft.Data.Sqlite.SqliteType.Integer;
