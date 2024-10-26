@@ -1,5 +1,7 @@
-﻿using DiGi.SQLite.Enums;
+﻿using DiGi.Core.Interfaces;
+using DiGi.SQLite.Enums;
 using System;
+using System.Text.Json.Nodes;
 
 namespace DiGi.SQLite
 {
@@ -7,19 +9,35 @@ namespace DiGi.SQLite
     {
         public static SQLiteDataType? SQLiteDataType(this object @object)
         {
-            if(@object == null)
+            return SQLiteDataType(@object?.GetType());
+        }
+
+        public static SQLiteDataType? SQLiteDataType(this Type type)
+        {
+            if (type == null)
             {
                 return null;
             }
 
-            if(@object is string)
+            Type type_Temp = Nullable.GetUnderlyingType(type);
+            if (type_Temp == null)
+            {
+                type_Temp = type;
+            }
+
+            if (type == typeof(string))
             {
                 return Enums.SQLiteDataType.Text;
             }
 
-            if(Core.Query.IsNumeric(@object, out bool isInteger))
+            if (type == typeof(Guid))
             {
-                if(isInteger)
+                return Enums.SQLiteDataType.Text;
+            }
+
+            if (Core.Query.IsNumeric(type, out bool isInteger))
+            {
+                if (isInteger)
                 {
                     return Enums.SQLiteDataType.Integer;
                 }
@@ -29,22 +47,32 @@ namespace DiGi.SQLite
                 }
             }
 
-            if(@object is DateTime)
+            if (type == typeof(DateTime))
             {
                 return Enums.SQLiteDataType.Integer;
             }
 
-            if(@object is bool)
+            if (type == typeof(bool))
             {
                 return Enums.SQLiteDataType.Integer;
             }
 
-            if (@object is Enum)
+            if (type.IsEnum)
             {
                 return Enums.SQLiteDataType.Integer;
             }
 
-            return Enums.SQLiteDataType.Blob;
+            if (typeof(JsonNode).IsAssignableFrom(type_Temp))
+            {
+                return Enums.SQLiteDataType.Text;
+            }
+
+            if (typeof(ISerializableObject).IsAssignableFrom(type_Temp))
+            {
+                return Enums.SQLiteDataType.Text;
+            }
+
+            return null;
         }
 
     }

@@ -1,7 +1,6 @@
 ﻿using DiGi.Core.Classes;
 using DiGi.SQLite.Enums;
 using DiGi.SQLite.Interfaces;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace DiGi.SQLite.Classes

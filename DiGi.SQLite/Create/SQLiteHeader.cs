@@ -15,7 +15,7 @@ namespace DiGi.SQLite
                 return null;
             }
 
-            Dictionary<string, SQLiteDataType> dictionary = new Dictionary<string, SQLiteDataType>();
+            Dictionary<string, SQLiteDataType?> dictionary = new Dictionary<string, SQLiteDataType?>();
             foreach(SQLiteDataObject sQLiteDataObject in sQLiteDataObjects)
             {
                 List<SQLiteProperty> sQLiteProperties = Query.SQLiteProperties<ISQLiteData>(sQLiteDataObject?.Value, false);
@@ -34,12 +34,23 @@ namespace DiGi.SQLite
                     string name = sQLiteProperty.Name;
                     SQLiteDataType? sQLiteDataType = sQLiteProperty.SQLiteDataType;
 
+                    if(!dictionary.TryGetValue(name, out SQLiteDataType? sQLiteDataType_Existing) || sQLiteDataType_Existing == null || !sQLiteDataType_Existing.HasValue)
+                    {
+                        dictionary[name] = sQLiteDataType;
+                    }
                 }
             }
 
-            //TODO: Implement here
+            List<SQLiteColumn> sQLiteColumns = new List<SQLiteColumn>();
+            foreach(KeyValuePair<string, SQLiteDataType?> keyValuePair in dictionary)
+            {
+                sQLiteColumns.Add(new SQLiteColumn(keyValuePair.Key, keyValuePair.Value));
+            }
+
             throw new System.NotImplementedException();
 
+            //TODO: Continue here (WIP)
+            //return new SQLiteHeader();
         }
     }
 }
