@@ -1,11 +1,7 @@
-﻿using DiGi.Core.Classes;
-using DiGi.Core.Interfaces;
-using DiGi.SQLite.Classes;
-using DiGi.SQLite.Interfaces;
+﻿using DiGi.Core.Interfaces;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
-using System.Text.Json.Nodes;
 
 namespace DiGi.SQLite
 {
@@ -139,66 +135,6 @@ namespace DiGi.SQLite
             }
 
             return true;
-        }
-
-        public static bool ToSQLite(this SQLiteModel sQLiteModel, string path)
-        {
-            if (sQLiteModel == null || string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(System.IO.Path.GetDirectoryName(path)))
-            {
-                return false;
-            }
-
-            List<ISQLiteData> sQLiteDatas = sQLiteModel.SQLiteDatas;
-            if(sQLiteDatas == null)
-            {
-                return false;
-            }
-
-            List<SQLiteDataObject> sQLiteDataObjects = sQLiteModel.GetQSLiteDatas<SQLiteDataObject>();
-            if (sQLiteDataObjects == null)
-            {
-                return false;
-            }
-
-            SQLiteDataValueCluster<SQLiteDataObject> sQLiteDataValueCluster_Temp = new SQLiteDataValueCluster<SQLiteDataObject>();
-
-            foreach (SQLiteDataObject sQLiteDataObject in sQLiteDataObjects)
-            {
-                if (sQLiteDataObject == null)
-                {
-                    continue;
-                }
-
-                sQLiteDataValueCluster_Temp.Add(sQLiteDataObject);
-
-                List<SQLiteProperty> sQLiteProperties = Query.SQLiteProperties<SQLiteDataObject>(sQLiteDataObject.Value, true);
-                if (sQLiteProperties != null)
-                {
-                    foreach (SQLiteProperty sQLiteProperty in sQLiteProperties)
-                    {
-                        if (sQLiteProperty == null)
-                        {
-                            continue;
-                        }
-
-                        SQLiteDataObject sQLiteDataObject_Temp = sQLiteProperty.GetSQLiteData<SQLiteDataObject>();
-                        sQLiteDataValueCluster_Temp.Add(sQLiteDataObject_Temp);
-                    }
-                }
-            }
-
-            List<TypeReference> typeReferences = sQLiteDataValueCluster_Temp.GetKeys_1();
-            if (typeReferences != null)
-            {
-                foreach (TypeReference typeReference in typeReferences)
-                {
-                    List<SQLiteDataObject> sQLiteDataObjects_Type = sQLiteDataValueCluster_Temp.GetValues<SQLiteDataObject>(typeReference);
-
-
-                }
-            }
-
-            return false;
         }
 
     }
