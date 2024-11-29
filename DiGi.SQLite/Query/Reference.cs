@@ -16,7 +16,7 @@ namespace DiGi.SQLite
                 return ((IUniqueObject)serializableObject).Guid.ToString();
             }
 
-            return Core.Convert.ToString(serializableObject).GetHashCode().ToString();
+            return Core.Convert.ToSystem_String(serializableObject).GetHashCode().ToString();
         }
 
     }
