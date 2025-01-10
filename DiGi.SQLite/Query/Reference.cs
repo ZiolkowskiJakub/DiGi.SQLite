@@ -13,7 +13,7 @@ namespace DiGi.SQLite
 
             if (serializableObject is IUniqueObject)
             {
-                return ((IUniqueObject)serializableObject).Guid.ToString();
+                return ((IUniqueObject)serializableObject).UniqueId;
             }
 
             return Core.Convert.ToSystem_String(serializableObject).GetHashCode().ToString();
