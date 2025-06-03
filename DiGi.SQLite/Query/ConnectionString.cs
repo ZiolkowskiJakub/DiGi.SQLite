@@ -1,6 +1,4 @@
-﻿using DiGi.Core.Interfaces;
-
-namespace DiGi.SQLite
+﻿namespace DiGi.SQLite
 {
     public static partial class Query
     {
