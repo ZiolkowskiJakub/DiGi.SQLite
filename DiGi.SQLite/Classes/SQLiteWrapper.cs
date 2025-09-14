@@ -14,7 +14,7 @@ namespace DiGi.SQLite.Classes
     public class SQLiteWrapper : Wrapper
     {
         private bool disposed = false;
-        private SqliteConnection sqliteConnection;
+        private SqliteConnection? sqliteConnection;
         public SQLiteWrapper()
             : base()
         {
@@ -26,7 +26,7 @@ namespace DiGi.SQLite.Classes
             Dispose(false);
         }
 
-        public string ConnectionString { get; set; } = null;
+        public string? ConnectionString { get; set; } = null;
         
         protected override void Dispose(bool disposing)
         {
@@ -46,17 +46,17 @@ namespace DiGi.SQLite.Classes
             }
         }
 
-        protected override bool Pull(IEnumerable<WrapperItem> wrapperItems)
+        protected override bool Pull(IEnumerable<WrapperItem>? wrapperItems)
         {
             if (wrapperItems == null)
             {
                 return false;
             }
 
-            WrapperItemValueCluster wrapperItemValueCluster = new WrapperItemValueCluster();
+            WrapperItemValueCluster wrapperItemValueCluster = [];
             foreach (WrapperItem wrapperItem in wrapperItems)
             {
-                if (wrapperItem?.UniqueReference == null)
+                if (wrapperItem?.UniqueReference is null)
                 {
                     continue;
                 }
@@ -64,88 +64,90 @@ namespace DiGi.SQLite.Classes
                 wrapperItemValueCluster.Add(wrapperItem);
             }
 
-            List<TypeReference> typeReferences = wrapperItemValueCluster.GetKeys_1();
+            List<TypeReference>? typeReferences = wrapperItemValueCluster.GetKeys_1();
             if (typeReferences == null || typeReferences.Count == 0)
             {
                 return false;
             }
 
-            if (sqliteConnection == null)
-            {
-                sqliteConnection = new SqliteConnection(ConnectionString);
-            }
+            sqliteConnection ??= new SqliteConnection(ConnectionString);
 
             if (sqliteConnection.State == ConnectionState.Closed)
             {
                 sqliteConnection.Open();
             }
 
-            using (SqliteCommand sqliteCommand = new SqliteCommand() { Connection = sqliteConnection })
+            using SqliteCommand sqliteCommand = new() { Connection = sqliteConnection };
+
+            foreach (TypeReference typeReference in typeReferences)
             {
-                foreach (TypeReference typeReference in typeReferences)
+                string? tableName = Query.TableName(typeReference);
+                if (string.IsNullOrWhiteSpace(tableName))
                 {
-                    string tableName = Query.TableName(typeReference);
-                    if (string.IsNullOrWhiteSpace(tableName))
+                    continue;
+                }
+
+                if (!Query.Exists(sqliteCommand, tableName))
+                {
+                    continue;
+                }
+
+                List<WrapperItem>? wrapperItems_TypeReference = wrapperItemValueCluster.GetValues<WrapperItem>(typeReference);
+                if (wrapperItems_TypeReference == null || wrapperItems_TypeReference.Count == 0)
+                {
+                    continue;
+                }
+
+                List<List<WrapperItem>>? wrapperItemsList = Core.Query.Split(wrapperItems_TypeReference, Constans.Query.MaxLength - 1);
+                if (wrapperItemsList is null)
+                {
+                    continue;
+                }
+
+                foreach (List<WrapperItem> wrapperItems_Temp in wrapperItemsList)
+                {
+                    Dictionary<string, WrapperItem> dictionary = [];
+
+                    StringBuilder stringBuilder = new(string.Format("SELECT UniqueReference, JsonNode, Checksum FROM {0} WHERE ", tableName));
+                    for (int i = 0; i < wrapperItems_Temp.Count; i++)
                     {
-                        continue;
-                    }
-
-                    if (!Query.Exists(sqliteCommand, tableName))
-                    {
-                        continue;
-                    }
-
-                    List<WrapperItem> wrapperItems_TypeReference = wrapperItemValueCluster.GetValues<WrapperItem>(typeReference);
-                    if (wrapperItems_TypeReference == null || wrapperItems_TypeReference.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    List<List<WrapperItem>> wrapperItemsList = Core.Query.Split(wrapperItems_TypeReference, Constans.Query.MaxLength - 1);
-
-                    foreach(List<WrapperItem> wrapperItems_Temp in wrapperItemsList)
-                    {
-                        Dictionary<string, WrapperItem> dictionary = new Dictionary<string, WrapperItem>();
-
-                        StringBuilder stringBuilder = new StringBuilder(string.Format("SELECT UniqueReference, JsonNode, Checksum FROM {0} WHERE ", tableName));
-                        for (int i = 0; i < wrapperItems_Temp.Count; i++)
+                        stringBuilder.Append($"UniqueReference = @value{i}");
+                        if (i < wrapperItems_Temp.Count - 1)
                         {
-                            stringBuilder.Append($"UniqueReference = @value{i}");
-                            if (i < wrapperItems_Temp.Count - 1)
-                            {
-                                stringBuilder.Append(" OR ");
-                            }
-
-                            WrapperItem wrapperItem_TypeReference = wrapperItems_Temp[i];
-
-                            dictionary[wrapperItem_TypeReference.UniqueReference.ToString()] = wrapperItem_TypeReference;
+                            stringBuilder.Append(" OR ");
                         }
 
-                        sqliteCommand.CommandText = stringBuilder.ToString();
+                        WrapperItem wrapperItem_TypeReference = wrapperItems_Temp[i];
 
-                        sqliteCommand.Parameters.Clear();
-
-                        for (int i = 0; i < wrapperItems_Temp.Count; i++)
+                        if (wrapperItem_TypeReference?.UniqueReference?.ToString() is string uniqueReference)
                         {
-                            sqliteCommand.Parameters.AddWithValue($"@value{i}", dictionary.Keys.ElementAt(i));
+                            dictionary[uniqueReference] = wrapperItem_TypeReference;
+                        }
+                    }
+
+                    sqliteCommand.CommandText = stringBuilder.ToString();
+
+                    sqliteCommand.Parameters.Clear();
+
+                    for (int i = 0; i < wrapperItems_Temp.Count; i++)
+                    {
+                        sqliteCommand.Parameters.AddWithValue($"@value{i}", dictionary.Keys.ElementAt(i));
+                    }
+
+                    using SqliteDataReader sqliteDataReader = sqliteCommand.ExecuteReader();
+
+                    while (sqliteDataReader.Read())
+                    {
+                        string uniqueReference = sqliteDataReader.GetString(0);
+                        string json = sqliteDataReader.GetString(1);
+                        string? checksum = sqliteDataReader.IsDBNull(2) ? null : sqliteDataReader.GetString(2);
+
+                        if (!dictionary.TryGetValue(uniqueReference, out WrapperItem wrapperItem) || wrapperItem == null)
+                        {
+                            continue;
                         }
 
-                        using (SqliteDataReader sqliteDataReader = sqliteCommand.ExecuteReader())
-                        {
-                            while (sqliteDataReader.Read())
-                            {
-                                string uniqueReference = sqliteDataReader.GetString(0);
-                                string json = sqliteDataReader.GetString(1);
-                                string checksum = sqliteDataReader.IsDBNull(2) ? null : sqliteDataReader.GetString(2);
-
-                                if (!dictionary.TryGetValue(uniqueReference, out WrapperItem wrapperItem) || wrapperItem == null)
-                                {
-                                    continue;
-                                }
-
-                                wrapperItem.JsonNode = JsonNode.Parse(json);
-                            }
-                        }
+                        wrapperItem.JsonNode = JsonNode.Parse(json);
                     }
                 }
             }
@@ -156,20 +158,17 @@ namespace DiGi.SQLite.Classes
 
         protected override bool Pull(out IEnumerable<TypeReference> typeReferences)
         {
-            if (sqliteConnection == null)
-            {
-                sqliteConnection = new SqliteConnection(ConnectionString);
-            }
+            sqliteConnection ??= new SqliteConnection(ConnectionString);
 
             if (sqliteConnection.State == ConnectionState.Closed)
             {
                 sqliteConnection.Open();
             }
 
-            HashSet<TypeReference> typeReferences_Temp = new HashSet<TypeReference>();
-            using (SqliteCommand sqliteCommand = new SqliteCommand() { Connection = sqliteConnection })
+            HashSet<TypeReference> typeReferences_Temp = [];
+            using (SqliteCommand sqliteCommand = new () { Connection = sqliteConnection })
             {
-                List<string> names = new List<string>();
+                List<string> names = [];
 
                 sqliteCommand.CommandText = string.Format("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name LIKE '{0}_%'", Table.Name.Prefix.Type);
 
@@ -187,19 +186,19 @@ namespace DiGi.SQLite.Classes
                 {
                     sqliteCommand.CommandText = string.Format("SELECT UniqueReference FROM {0} LIMIT 1", names[i]);
 
-                    object result = sqliteCommand.ExecuteScalar();
+                    object? result = sqliteCommand.ExecuteScalar();
 
                     if (result == null || result == DBNull.Value)
                     {
                         continue;
                     }
 
-                    if (!Core.Query.TryParse(result.ToString(), out UniqueReference uniqueReference) || uniqueReference == null)
+                    if (!Core.Query.TryParse(result.ToString(), out UniqueReference? uniqueReference) || uniqueReference is null)
                     {
                         continue;
                     }
 
-                    TypeReference typeReference = uniqueReference.TypeReference;
+                    TypeReference? typeReference = uniqueReference.TypeReference;
                     if (typeReference == null)
                     {
                         continue;
@@ -213,7 +212,7 @@ namespace DiGi.SQLite.Classes
             return typeReferences_Temp != null && typeReferences_Temp.Count != 0;
         }
 
-        protected override bool Pull(TypeReference typeReference, out IEnumerable<UniqueReference> uniqueReferences)
+        protected override bool Pull(TypeReference? typeReference, out IEnumerable<UniqueReference>? uniqueReferences)
         {
             uniqueReferences = null;
 
@@ -222,55 +221,51 @@ namespace DiGi.SQLite.Classes
                 return false;
             }
 
-            string tableName = Query.TableName(typeReference);
+            string? tableName = Query.TableName(typeReference);
             if (string.IsNullOrWhiteSpace(tableName))
             {
                 return false;
             }
 
-            if (sqliteConnection == null)
-            {
-                sqliteConnection = new SqliteConnection(ConnectionString);
-            }
+            sqliteConnection ??= new SqliteConnection(ConnectionString);
 
             if (sqliteConnection.State == ConnectionState.Closed)
             {
                 sqliteConnection.Open();
             }
 
-            HashSet<UniqueReference> uniqueReferences_Temp = new HashSet<UniqueReference>();
-            using (SqliteCommand sqliteCommand = new SqliteCommand() { Connection = sqliteConnection })
+            HashSet<UniqueReference> uniqueReferences_Temp = [];
+            using (SqliteCommand sqliteCommand = new () { Connection = sqliteConnection })
             {
                 sqliteCommand.CommandText = string.Format("SELECT UniqueReference FROM {0}", tableName);
 
-                using (SqliteDataReader sqliteDataReader = sqliteCommand.ExecuteReader())
+                using SqliteDataReader sqliteDataReader = sqliteCommand.ExecuteReader();
+
+                while (sqliteDataReader.Read())
                 {
-                    while (sqliteDataReader.Read())
+                    string reference = sqliteDataReader.GetString(0);
+
+                    if (!Core.Query.TryParse(reference, out UniqueReference? uniqueReference) || uniqueReference is null)
                     {
-                        string reference = sqliteDataReader.GetString(0);
-
-                        if (!Core.Query.TryParse(reference, out UniqueReference uniqueReference) || uniqueReference == null)
-                        {
-                            continue;
-                        }
-
-                        uniqueReferences_Temp.Add(uniqueReference);
+                        continue;
                     }
+
+                    uniqueReferences_Temp.Add(uniqueReference);
                 }
             }
 
             uniqueReferences = uniqueReferences_Temp;
-            return uniqueReferences_Temp != null || uniqueReferences_Temp.Count != 0;
+            return uniqueReferences_Temp != null && uniqueReferences_Temp.Count != 0;
         }
 
-        protected override bool Push(IEnumerable<WrapperItem> wrapperItems)
+        protected override bool Push(IEnumerable<WrapperItem>? wrapperItems)
         {
             if (wrapperItems == null)
             {
                 return false;
             }
 
-            WrapperItemValueCluster wrapperItemValueCluster = new WrapperItemValueCluster();
+            WrapperItemValueCluster wrapperItemValueCluster = [];
             foreach(WrapperItem wrapperItem in wrapperItems)
             {
                 if(wrapperItem?.JsonNode == null)
@@ -281,68 +276,62 @@ namespace DiGi.SQLite.Classes
                 wrapperItemValueCluster.Add(wrapperItem);
             }
 
-            List<TypeReference> typeReferences = wrapperItemValueCluster.GetKeys_1();
+            List<TypeReference>? typeReferences = wrapperItemValueCluster.GetKeys_1();
             if(typeReferences == null || typeReferences.Count == 0)
             {
                 return false;
             }
 
-            if (sqliteConnection == null)
-            {
-                sqliteConnection = new SqliteConnection(ConnectionString);
-            }
+            sqliteConnection ??= new SqliteConnection(ConnectionString);
 
             if (sqliteConnection.State == ConnectionState.Closed)
             {
                 sqliteConnection.Open();
             }
 
-            using (SqliteCommand sqliteCommand = new SqliteCommand() { Connection = sqliteConnection })
+            using SqliteCommand sqliteCommand = new() { Connection = sqliteConnection };
+
+            foreach (TypeReference typeReference in typeReferences)
             {
-                foreach (TypeReference typeReference in typeReferences)
+                string? tableName = Query.TableName(typeReference);
+                if (string.IsNullOrWhiteSpace(tableName))
                 {
-                    string tableName = Query.TableName(typeReference);
-                    if (string.IsNullOrWhiteSpace(tableName))
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    List<WrapperItem> wrapperItems_TypeReference = wrapperItemValueCluster.GetValues<WrapperItem>(typeReference);
-                    if(wrapperItems_TypeReference == null || wrapperItems_TypeReference.Count == 0)
-                    {
-                        continue;
-                    }
+                List<WrapperItem>? wrapperItems_TypeReference = wrapperItemValueCluster.GetValues<WrapperItem>(typeReference);
+                if (wrapperItems_TypeReference == null || wrapperItems_TypeReference.Count == 0)
+                {
+                    continue;
+                }
 
-                    sqliteCommand.CommandText = string.Format(@"CREATE TABLE IF NOT EXISTS {0} (Id INTEGER PRIMARY KEY AUTOINCREMENT, UniqueReference TEXT NOT NULL UNIQUE, JsonNode TEXT NOT NULL, Checksum TEXT)", tableName);
+                sqliteCommand.CommandText = string.Format(@"CREATE TABLE IF NOT EXISTS {0} (Id INTEGER PRIMARY KEY AUTOINCREMENT, UniqueReference TEXT NOT NULL UNIQUE, JsonNode TEXT NOT NULL, Checksum TEXT)", tableName);
+                sqliteCommand.ExecuteNonQuery();
+
+                sqliteCommand.CommandText = string.Format("INSERT OR REPLACE INTO {0} (UniqueReference, JsonNode, Checksum) VALUES (@UniqueReference, @JsonNode, @Checksum)", tableName);
+
+                sqliteCommand.Parameters.Clear();
+
+                SqliteParameter sqliteParameter_UniqueReference = new("@UniqueReference", SqliteType.Text);
+                sqliteCommand.Parameters.Add(sqliteParameter_UniqueReference);
+
+                SqliteParameter sqliteParameter_JsonNode = new("@JsonNode", SqliteType.Text);
+                sqliteCommand.Parameters.Add(sqliteParameter_JsonNode);
+
+                SqliteParameter sqliteParameter_Checksum = new("@Checksum", SqliteType.Text);
+                sqliteCommand.Parameters.Add(sqliteParameter_Checksum);
+
+                foreach (WrapperItem wrapperItem_TypeReference in wrapperItems_TypeReference)
+                {
+                    object? checksum = wrapperItem_TypeReference.Checksum;
+
+                    checksum ??= DBNull.Value;
+
+                    sqliteParameter_UniqueReference.Value = wrapperItem_TypeReference?.UniqueReference?.ToString();
+                    sqliteParameter_JsonNode.Value = wrapperItem_TypeReference?.JsonNode?.ToString();
+                    sqliteParameter_Checksum.Value = checksum;
+
                     sqliteCommand.ExecuteNonQuery();
-
-                    sqliteCommand.CommandText = string.Format("INSERT OR REPLACE INTO {0} (UniqueReference, JsonNode, Checksum) VALUES (@UniqueReference, @JsonNode, @Checksum)", tableName);
-
-                    sqliteCommand.Parameters.Clear();
-
-                    SqliteParameter sqliteParameter_UniqueReference = new SqliteParameter("@UniqueReference", SqliteType.Text);
-                    sqliteCommand.Parameters.Add(sqliteParameter_UniqueReference);
-
-                    SqliteParameter sqliteParameter_JsonNode = new SqliteParameter("@JsonNode", SqliteType.Text);
-                    sqliteCommand.Parameters.Add(sqliteParameter_JsonNode);
-
-                    SqliteParameter sqliteParameter_Checksum = new SqliteParameter("@Checksum", SqliteType.Text);
-                    sqliteCommand.Parameters.Add(sqliteParameter_Checksum);
-
-                    foreach (WrapperItem wrapperItem_TypeReference in wrapperItems_TypeReference)
-                    {
-                        object checksum = wrapperItem_TypeReference.Checksum;
-                        if(checksum == null)
-                        {
-                            checksum = DBNull.Value;
-                        }
-
-                        sqliteParameter_UniqueReference.Value = wrapperItem_TypeReference.UniqueReference.ToString();
-                        sqliteParameter_JsonNode.Value = wrapperItem_TypeReference.JsonNode.ToString();
-                        sqliteParameter_Checksum.Value = checksum;
-
-                        sqliteCommand.ExecuteNonQuery();
-                    }
                 }
             }
 

@@ -4,7 +4,7 @@ namespace DiGi.SQLite
 {
     public static partial class Query
     {
-        public static string TableName(TypeReference typeReference)
+        public static string? TableName(TypeReference? typeReference)
         {
             if(typeReference == null)
             {

@@ -2,7 +2,7 @@
 {
     public static partial class Query
     {
-        public static string ConnectionString(string path)
+        public static string? ConnectionString(string? path)
         {
             if(string.IsNullOrWhiteSpace(path))
             {

@@ -4,7 +4,7 @@ namespace DiGi.SQLite
 {
     public static partial class Query
     {
-        public static bool Exists(this SqliteCommand sqliteCommand, string tableName)
+        public static bool Exists(this SqliteCommand? sqliteCommand, string? tableName)
         {
             if(sqliteCommand == null || string.IsNullOrEmpty(tableName))
             {
@@ -15,7 +15,7 @@ namespace DiGi.SQLite
             sqliteCommand.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = @tableName;";
             sqliteCommand.Parameters.AddWithValue("@tableName", tableName);
 
-            object result = sqliteCommand.ExecuteScalar();
+            object? result = sqliteCommand.ExecuteScalar();
 
             sqliteCommand.Parameters.Clear();
 

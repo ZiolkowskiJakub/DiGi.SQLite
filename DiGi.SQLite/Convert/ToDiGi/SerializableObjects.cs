@@ -7,16 +7,16 @@ namespace DiGi.SQLite
 {
     public static partial class Convert
     {
-        public static List<T> ToDiGi<T>(string path, Func<T, bool> func = null) where T : ISerializableObject
+        public static List<T>? ToDiGi<T>(string? path, Func<T?, bool>? func = null) where T : ISerializableObject
         {
             if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
             {
                 return null;
             }
 
-            List<T> result = new List<T>();
+            List<T>? result = [];
 
-            using (SqliteConnection sqliteConnection = new SqliteConnection($"Data Source={path}"))
+            using (SqliteConnection sqliteConnection = new ($"Data Source={path}"))
             {
                 try
                 {
@@ -37,74 +37,73 @@ namespace DiGi.SQLite
             return result;
         }
 
-        public static List<T> ToDiGi<T>(SqliteConnection sqliteConnection, Func<T, bool> func = null) where T : ISerializableObject
+        public static List<T>? ToDiGi<T>(SqliteConnection? sqliteConnection, Func<T?, bool>? func = null) where T : ISerializableObject
         {
             if (sqliteConnection == null)
             {
                 return null;
             }
 
-            using (SqliteCommand sqliteCommand = new SqliteCommand() { Connection = sqliteConnection })
+            using SqliteCommand sqliteCommand = new() { Connection = sqliteConnection };
+
+            sqliteCommand.CommandText = "SELECT Id, FullTypeName FROM Types";
+
+            List<Tuple<int, Type>> tuples = [];
+            using (SqliteDataReader sqliteDataReader = sqliteCommand.ExecuteReader())
             {
-                sqliteCommand.CommandText = "SELECT Id, FullTypeName FROM Types";
-
-                List<Tuple<int, Type>> tuples = new List<Tuple<int, Type>>();
-                using (SqliteDataReader sqliteDataReader = sqliteCommand.ExecuteReader())
+                while (sqliteDataReader.Read())
                 {
-                    while (sqliteDataReader.Read())
+                    string fullTypeName = sqliteDataReader.GetString(1);
+
+                    Type? type = Core.Query.Type(fullTypeName);
+                    if (type == null)
                     {
-                        string fullTypeName = sqliteDataReader.GetString(1);
-
-                        Type type = Core.Query.Type(fullTypeName);
-                        if (type == null)
-                        {
-                            continue;
-                        }
-
-                        if (!typeof(T).IsAssignableFrom(type))
-                        {
-                            continue;
-                        }
-
-                        int typeId = sqliteDataReader.GetInt32(0);
-
-                        tuples.Add(new Tuple<int, Type>(typeId, type));
-                    }
-                }
-
-                if (tuples == null || tuples.Count == 0)
-                {
-                    return null;
-                }
-
-                List<T> result = new List<T>();
-
-                foreach (Tuple<int, Type> tuple in tuples)
-                {
-                    sqliteCommand.CommandText = string.Format("SELECT Json FROM {0}", string.Format("Type_{0}", tuple.Item1));
-                    using (SqliteDataReader sqliteDataReader = sqliteCommand.ExecuteReader())
-                    {
-                        while (sqliteDataReader.Read())
-                        {
-                            List<T> ts = Core.Convert.ToDiGi<T>(sqliteDataReader.GetString(0));
-                            if (ts == null || ts.Count == 0)
-                            {
-                                continue;
-                            }
-
-                            if (func != null && !func.Invoke(ts[0]))
-                            {
-                                continue;
-                            }
-
-                            result.Add(ts[0]);
-                        }
+                        continue;
                     }
 
-                }
+                    if (!typeof(T).IsAssignableFrom(type))
+                    {
+                        continue;
+                    }
 
-                return result;
+                    int typeId = sqliteDataReader.GetInt32(0);
+
+                    tuples.Add(new Tuple<int, Type>(typeId, type));
+                }
             }
+
+            if (tuples == null || tuples.Count == 0)
+            {
+                return null;
+            }
+
+            List<T> result = [];
+
+            foreach (Tuple<int, Type> tuple in tuples)
+            {
+                sqliteCommand.CommandText = string.Format("SELECT Json FROM {0}", string.Format("Type_{0}", tuple.Item1));
+                
+                using SqliteDataReader sqliteDataReader = sqliteCommand.ExecuteReader();
+
+                while (sqliteDataReader.Read())
+                {
+                    List<T>? ts = Core.Convert.ToDiGi<T>(sqliteDataReader.GetString(0));
+                    if (ts == null || ts.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    if (func != null && !func.Invoke(ts[0]))
+                    {
+                        continue;
+                    }
+
+                    result.Add(ts[0]);
+                }
+
+            }
+
+            return result;
         }
     }
 }

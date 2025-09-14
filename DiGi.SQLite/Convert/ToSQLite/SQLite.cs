@@ -16,7 +16,7 @@ namespace DiGi.SQLite
 
             bool result = false;
 
-            using (SqliteConnection sqliteConnection = new SqliteConnection($"Data Source={path}"))
+            using (SqliteConnection sqliteConnection = new ($"Data Source={path}"))
             {
                 try
                 {
@@ -44,93 +44,92 @@ namespace DiGi.SQLite
                 return false;
             }
 
-            Dictionary<string, List<T>> dictionary = new Dictionary<string, List<T>>();
+            Dictionary<string, List<T>> dictionary = [];
             foreach (T serializableObject in serializableObjects)
             {
-                string fullTypeName = Core.Query.FullTypeName(serializableObject?.GetType());
+                string? fullTypeName = Core.Query.FullTypeName(serializableObject?.GetType());
                 if (string.IsNullOrWhiteSpace(fullTypeName))
                 {
                     continue;
                 }
 
-                if (!dictionary.TryGetValue(fullTypeName, out List<T> serializableObjects_Temp) || serializableObjects_Temp == null)
+                if (!dictionary.TryGetValue(fullTypeName!, out List<T> serializableObjects_Temp) || serializableObjects_Temp == null)
                 {
-                    serializableObjects_Temp = new List<T>();
-                    dictionary[fullTypeName] = serializableObjects_Temp;
+                    serializableObjects_Temp = [];
+                    dictionary[fullTypeName!] = serializableObjects_Temp;
                 }
 
-                serializableObjects_Temp.Add(serializableObject);
+                serializableObjects_Temp.Add(serializableObject!);
             }
 
-            using (SqliteCommand sqliteCommand = new SqliteCommand() { Connection = sqliteConnection })
+            using SqliteCommand sqliteCommand = new() { Connection = sqliteConnection };
+
+            sqliteCommand.CommandText = @"CREATE TABLE IF NOT EXISTS Types (Id INTEGER PRIMARY KEY AUTOINCREMENT, FullTypeName TEXT NOT NULL UNIQUE)";
+            sqliteCommand.ExecuteNonQuery();
+
+            sqliteCommand.CommandText = "INSERT OR IGNORE INTO Types (FullTypeName) VALUES (@FullTypeName)";
+            foreach (string fullTypeName in dictionary.Keys)
             {
-                sqliteCommand.CommandText = @"CREATE TABLE IF NOT EXISTS Types (Id INTEGER PRIMARY KEY AUTOINCREMENT, FullTypeName TEXT NOT NULL UNIQUE)";
+                sqliteCommand.Parameters.Clear();
+                sqliteCommand.Parameters.AddWithValue("@FullTypeName", fullTypeName);
+
                 sqliteCommand.ExecuteNonQuery();
+            }
 
-                sqliteCommand.CommandText = "INSERT OR IGNORE INTO Types (FullTypeName) VALUES (@FullTypeName)";
-                foreach (string fullTypeName in dictionary.Keys)
+            foreach (KeyValuePair<string, List<T>> keyValuePair in dictionary)
+            {
+                if (keyValuePair.Value == null || keyValuePair.Value.Count == 0)
                 {
-                    sqliteCommand.Parameters.Clear();
-                    sqliteCommand.Parameters.AddWithValue("@FullTypeName", fullTypeName);
-
-                    sqliteCommand.ExecuteNonQuery();
+                    continue;
                 }
 
-                foreach (KeyValuePair<string, List<T>> keyValuePair in dictionary)
+                string fullTypeName = keyValuePair.Key;
+
+                sqliteCommand.CommandText = "SELECT Id FROM Types WHERE FullTypeName = @FullTypeName LIMIT 1";
+
+                sqliteCommand.Parameters.Clear();
+                sqliteCommand.Parameters.AddWithValue("@FullTypeName", fullTypeName);
+
+                int typeId = System.Convert.ToInt32(sqliteCommand.ExecuteScalar());
+
+                string tableName = string.Format("Type_{0}", typeId);
+
+                sqliteCommand.CommandText = string.Format(@"CREATE TABLE IF NOT EXISTS {0} (Id INTEGER PRIMARY KEY AUTOINCREMENT, Reference TEXT NOT NULL UNIQUE, Json TEXT NOT NULL)", tableName);
+                sqliteCommand.ExecuteNonQuery();
+
+                sqliteCommand.CommandText = string.Format("INSERT OR REPLACE INTO {0} (Reference, Json) VALUES (@Reference, @Json)", tableName);
+
+                sqliteCommand.Parameters.Clear();
+
+                SqliteParameter sqliteParameter_Reference = new("@Reference", SqliteType.Text);
+                sqliteCommand.Parameters.Add(sqliteParameter_Reference);
+
+                SqliteParameter sqliteParameter_Json = new("@Json", SqliteType.Text);
+                sqliteCommand.Parameters.Add(sqliteParameter_Json);
+
+                foreach (T serializableObject in keyValuePair.Value)
                 {
-                    if (keyValuePair.Value == null || keyValuePair.Value.Count == 0)
+                    if (serializableObject == null)
                     {
                         continue;
                     }
 
-                    string fullTypeName = keyValuePair.Key;
-
-                    sqliteCommand.CommandText = "SELECT Id FROM Types WHERE FullTypeName = @FullTypeName LIMIT 1";
-
-                    sqliteCommand.Parameters.Clear();
-                    sqliteCommand.Parameters.AddWithValue("@FullTypeName", fullTypeName);
-
-                    int typeId = System.Convert.ToInt32(sqliteCommand.ExecuteScalar());
-
-                    string tableName = string.Format("Type_{0}", typeId);
-
-                    sqliteCommand.CommandText = string.Format(@"CREATE TABLE IF NOT EXISTS {0} (Id INTEGER PRIMARY KEY AUTOINCREMENT, Reference TEXT NOT NULL UNIQUE, Json TEXT NOT NULL)", tableName);
-                    sqliteCommand.ExecuteNonQuery();
-
-                    sqliteCommand.CommandText = string.Format("INSERT OR REPLACE INTO {0} (Reference, Json) VALUES (@Reference, @Json)", tableName);
-
-                    sqliteCommand.Parameters.Clear();
-
-                    SqliteParameter sqliteParameter_Reference = new SqliteParameter("@Reference", SqliteType.Text);
-                    sqliteCommand.Parameters.Add(sqliteParameter_Reference);
-
-                    SqliteParameter sqliteParameter_Json = new SqliteParameter("@Json", SqliteType.Text);
-                    sqliteCommand.Parameters.Add(sqliteParameter_Json);
-
-                    foreach (T serializableObject in keyValuePair.Value)
+                    string? reference = serializableObject.Reference();
+                    if (reference == null)
                     {
-                        if (serializableObject == null)
-                        {
-                            continue;
-                        }
-
-                        string reference = serializableObject.Reference();
-                        if (reference == null)
-                        {
-                            continue;
-                        }
-
-                        string json = Core.Convert.ToSystem_String(serializableObject);
-                        if (json == null)
-                        {
-                            continue;
-                        }
-
-                        sqliteParameter_Reference.Value = reference;
-                        sqliteParameter_Json.Value = json;
-
-                        sqliteCommand.ExecuteNonQuery();
+                        continue;
                     }
+
+                    string? json = Core.Convert.ToSystem_String(serializableObject);
+                    if (json == null)
+                    {
+                        continue;
+                    }
+
+                    sqliteParameter_Reference.Value = reference;
+                    sqliteParameter_Json.Value = json;
+
+                    sqliteCommand.ExecuteNonQuery();
                 }
             }
 

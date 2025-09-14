@@ -4,19 +4,19 @@ namespace DiGi.SQLite
 {
     public static partial class Query
     {
-        public static string Reference(this ISerializableObject serializableObject)
+        public static string? Reference(this ISerializableObject? serializableObject)
         {
             if (serializableObject == null)
             {
                 return null;
             }
 
-            if (serializableObject is IUniqueObject)
+            if (serializableObject is IUniqueObject uniqueObject)
             {
-                return ((IUniqueObject)serializableObject).UniqueId;
+                return uniqueObject.UniqueId;
             }
 
-            return Core.Convert.ToSystem_String(serializableObject).GetHashCode().ToString();
+            return Core.Convert.ToSystem_String(serializableObject)?.GetHashCode().ToString();
         }
 
     }
