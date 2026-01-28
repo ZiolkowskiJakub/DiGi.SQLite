@@ -15,10 +15,10 @@ namespace DiGi.SQLite.Classes
     {
         private bool disposed = false;
         private SqliteConnection? sqliteConnection;
+
         public SQLiteWrapper()
             : base()
         {
-
         }
 
         ~SQLiteWrapper()
@@ -27,7 +27,7 @@ namespace DiGi.SQLite.Classes
         }
 
         public string? ConnectionString { get; set; } = null;
-        
+
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
@@ -153,7 +153,6 @@ namespace DiGi.SQLite.Classes
             }
 
             return true;
-
         }
 
         protected override bool Pull(out IEnumerable<TypeReference> typeReferences)
@@ -166,7 +165,7 @@ namespace DiGi.SQLite.Classes
             }
 
             HashSet<TypeReference> typeReferences_Temp = [];
-            using (SqliteCommand sqliteCommand = new () { Connection = sqliteConnection })
+            using (SqliteCommand sqliteCommand = new() { Connection = sqliteConnection })
             {
                 List<string> names = [];
 
@@ -235,7 +234,7 @@ namespace DiGi.SQLite.Classes
             }
 
             HashSet<UniqueReference> uniqueReferences_Temp = [];
-            using (SqliteCommand sqliteCommand = new () { Connection = sqliteConnection })
+            using (SqliteCommand sqliteCommand = new() { Connection = sqliteConnection })
             {
                 sqliteCommand.CommandText = string.Format("SELECT UniqueReference FROM {0}", tableName);
 
@@ -266,9 +265,9 @@ namespace DiGi.SQLite.Classes
             }
 
             WrapperItemValueCluster wrapperItemValueCluster = [];
-            foreach(WrapperItem wrapperItem in wrapperItems)
+            foreach (WrapperItem wrapperItem in wrapperItems)
             {
-                if(wrapperItem?.JsonNode == null)
+                if (wrapperItem?.JsonNode == null)
                 {
                     continue;
                 }
@@ -277,7 +276,7 @@ namespace DiGi.SQLite.Classes
             }
 
             List<TypeReference>? typeReferences = wrapperItemValueCluster.GetKeys_1();
-            if(typeReferences == null || typeReferences.Count == 0)
+            if (typeReferences == null || typeReferences.Count == 0)
             {
                 return false;
             }

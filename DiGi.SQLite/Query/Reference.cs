@@ -18,7 +18,5 @@ namespace DiGi.SQLite
 
             return Core.Convert.ToSystem_String(serializableObject)?.GetHashCode().ToString();
         }
-
     }
 }
-

@@ -16,7 +16,7 @@ namespace DiGi.SQLite
 
             bool result = false;
 
-            using (SqliteConnection sqliteConnection = new ($"Data Source={path}"))
+            using (SqliteConnection sqliteConnection = new($"Data Source={path}"))
             {
                 try
                 {
@@ -135,7 +135,5 @@ namespace DiGi.SQLite
 
             return true;
         }
-
     }
 }
-

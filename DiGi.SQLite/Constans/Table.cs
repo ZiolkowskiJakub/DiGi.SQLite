@@ -9,8 +9,5 @@
                 public const string Type = "Type";
             }
         }
-
-
     }
 }
-

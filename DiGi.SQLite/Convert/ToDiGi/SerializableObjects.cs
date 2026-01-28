@@ -16,7 +16,7 @@ namespace DiGi.SQLite
 
             List<T>? result = [];
 
-            using (SqliteConnection sqliteConnection = new ($"Data Source={path}"))
+            using (SqliteConnection sqliteConnection = new($"Data Source={path}"))
             {
                 try
                 {
@@ -82,7 +82,7 @@ namespace DiGi.SQLite
             foreach (Tuple<int, Type> tuple in tuples)
             {
                 sqliteCommand.CommandText = string.Format("SELECT Json FROM {0}", string.Format("Type_{0}", tuple.Item1));
-                
+
                 using SqliteDataReader sqliteDataReader = sqliteCommand.ExecuteReader();
 
                 while (sqliteDataReader.Read())
@@ -100,7 +100,6 @@ namespace DiGi.SQLite
 
                     result.Add(ts[0]);
                 }
-
             }
 
             return result;

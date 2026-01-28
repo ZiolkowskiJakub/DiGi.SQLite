@@ -4,14 +4,12 @@
     {
         public static string? ConnectionString(string? path)
         {
-            if(string.IsNullOrWhiteSpace(path))
+            if (string.IsNullOrWhiteSpace(path))
             {
                 return null;
             }
 
             return $"Data Source={path}";
         }
-
     }
 }
-

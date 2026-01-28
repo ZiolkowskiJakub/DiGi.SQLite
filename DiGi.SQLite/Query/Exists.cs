@@ -6,7 +6,7 @@ namespace DiGi.SQLite
     {
         public static bool Exists(this SqliteCommand? sqliteCommand, string? tableName)
         {
-            if(sqliteCommand == null || string.IsNullOrEmpty(tableName))
+            if (sqliteCommand == null || string.IsNullOrEmpty(tableName))
             {
                 return false;
             }
@@ -21,7 +21,5 @@ namespace DiGi.SQLite
 
             return System.Convert.ToInt32(result) > 0;
         }
-
     }
 }
-
