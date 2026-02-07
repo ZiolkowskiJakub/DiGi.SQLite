@@ -17,7 +17,7 @@ namespace DiGi.SQLite
                 return null;
             }
 
-            return string.Format("{0}_{1}", Constans.Table.Name.Prefix.Type, uniqueId);
+            return string.Format("{0}_{1}", Constants.Table.Name.Prefix.Type, uniqueId);
         }
     }
 }

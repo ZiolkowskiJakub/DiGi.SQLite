@@ -1,6 +1,6 @@
 ﻿using DiGi.Core.Classes;
 using DiGi.Core.IO.Wrapper.Classes;
-using DiGi.SQLite.Constans;
+using DiGi.SQLite.Constants;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
@@ -98,7 +98,7 @@ namespace DiGi.SQLite.Classes
                     continue;
                 }
 
-                List<List<WrapperItem>>? wrapperItemsList = Core.Query.Split(wrapperItems_TypeReference, Constans.Query.MaxLength - 1);
+                List<List<WrapperItem>>? wrapperItemsList = Core.Query.Split(wrapperItems_TypeReference, Constants.Query.MaxLength - 1);
                 if (wrapperItemsList is null)
                 {
                     continue;

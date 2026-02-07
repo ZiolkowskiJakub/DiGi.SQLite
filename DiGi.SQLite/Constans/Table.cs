@@ -1,4 +1,4 @@
-﻿namespace DiGi.SQLite.Constans
+﻿namespace DiGi.SQLite.Constants
 {
     public static class Table
     {
