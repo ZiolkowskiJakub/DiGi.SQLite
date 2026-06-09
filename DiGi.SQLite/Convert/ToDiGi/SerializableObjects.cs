@@ -1,4 +1,4 @@
-﻿using DiGi.Core.Interfaces;
+using DiGi.Core.Interfaces;
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,13 @@ namespace DiGi.SQLite
 {
     public static partial class Convert
     {
+        /// <summary>
+        /// Converts serializable objects stored in a SQLite database file at the specified path to a list of objects of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The type of serializable objects to retrieve. Must implement <see cref="ISerializableObject"/>.</typeparam>
+        /// <param name="path">The file path to the SQLite database.</param>
+        /// <param name="func">An optional filter function to determine if an object should be included in the result list.</param>
+        /// <returns>A list of objects of type <typeparamref name="T"/>, or null if the path is invalid or the file does not exist.</returns>
         public static List<T>? ToDiGi<T>(string? path, Func<T?, bool>? func = null) where T : ISerializableObject
         {
             if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
@@ -37,6 +44,13 @@ namespace DiGi.SQLite
             return result;
         }
 
+        /// <summary>
+        /// Converts serializable objects stored in a SQLite database using the provided connection to a list of objects of type <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">The type of serializable objects to retrieve. Must implement <see cref="ISerializableObject"/>.</typeparam>
+        /// <param name="sqliteConnection">The SQLite connection to use for querying data.</param>
+        /// <param name="func">An optional filter function to determine if an object should be included in the result list.</param>
+        /// <returns>A list of objects of type <typeparamref name="T"/>, or null if the connection is null or no matching objects are found.</returns>
         public static List<T>? ToDiGi<T>(SqliteConnection? sqliteConnection, Func<T?, bool>? func = null) where T : ISerializableObject
         {
             if (sqliteConnection == null)

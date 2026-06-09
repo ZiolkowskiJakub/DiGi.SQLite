@@ -4,6 +4,12 @@ namespace DiGi.SQLite
 {
     public static partial class Query
     {
+        /// <summary>
+        /// Checks whether a table with the specified name exists in the SQLite database.
+        /// </summary>
+        /// <param name="sqliteCommand">The <see cref="SqliteCommand"/> used to execute the existence check.</param>
+        /// <param name="tableName">The name of the table to search for.</param>
+        /// <returns>True if the table exists; otherwise, false.</returns>
         public static bool Exists(this SqliteCommand? sqliteCommand, string? tableName)
         {
             if (sqliteCommand == null || string.IsNullOrEmpty(tableName))

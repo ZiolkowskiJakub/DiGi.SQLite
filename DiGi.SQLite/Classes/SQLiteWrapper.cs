@@ -1,4 +1,4 @@
-﻿using DiGi.Core.Classes;
+using DiGi.Core.Classes;
 using DiGi.Core.IO.Wrapper.Classes;
 using DiGi.SQLite.Constants;
 using Microsoft.Data.Sqlite;
@@ -11,11 +11,17 @@ using System.Text.Json.Nodes;
 
 namespace DiGi.SQLite.Classes
 {
+    /// <summary>
+    /// Provides a SQLite database implementation of the <see cref="Wrapper"/> class for persisting and retrieving serializable objects using unique references.
+    /// </summary>
     public class SQLiteWrapper : Wrapper
     {
         private bool disposed = false;
         private SqliteConnection? sqliteConnection;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SQLiteWrapper"/> class.
+        /// </summary>
         public SQLiteWrapper()
             : base()
         {
@@ -26,8 +32,15 @@ namespace DiGi.SQLite.Classes
             Dispose(false);
         }
 
+        /// <summary>
+        /// Gets or sets the connection string used to connect to the SQLite database.
+        /// </summary>
         public string? ConnectionString { get; set; } = null;
 
+        /// <summary>
+        /// Releases the resources used by the <see cref="SQLiteWrapper"/>.
+        /// </summary>
+        /// <param name="disposing">True to release both managed and unmanaged resources; false to release only unmanaged resources.</param>
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
@@ -46,6 +59,11 @@ namespace DiGi.SQLite.Classes
             }
         }
 
+        /// <summary>
+        /// Retrieves the data for a specific set of wrapper items from the SQLite database and populates their JSON nodes.
+        /// </summary>
+        /// <param name="wrapperItems">The collection of <see cref="WrapperItem"/> objects to be populated with data from the database.</param>
+        /// <returns>True if the retrieval process was executed; otherwise, false.</returns>
         protected override bool Pull(IEnumerable<WrapperItem>? wrapperItems)
         {
             if (wrapperItems == null)
@@ -155,6 +173,11 @@ namespace DiGi.SQLite.Classes
             return true;
         }
 
+        /// <summary>
+        /// Retrieves all available type references stored in the SQLite database based on the defined table prefix.
+        /// </summary>
+        /// <param name="typeReferences">When this method returns, contains a collection of <see cref="TypeReference"/> objects found in the database.</param>
+        /// <returns>True if one or more type references were successfully retrieved; otherwise, false.</returns>
         protected override bool Pull(out IEnumerable<TypeReference> typeReferences)
         {
             sqliteConnection ??= new SqliteConnection(ConnectionString);
@@ -211,6 +234,12 @@ namespace DiGi.SQLite.Classes
             return typeReferences_Temp != null && typeReferences_Temp.Count != 0;
         }
 
+        /// <summary>
+        /// Retrieves all unique references for a specific type reference from the SQLite database.
+        /// </summary>
+        /// <param name="typeReference">The <see cref="TypeReference"/> to filter by.</param>
+        /// <param name="uniqueReferences">When this method returns, contains a collection of <see cref="UniqueReference"/> objects associated with the specified type reference.</param>
+        /// <returns>True if one or more unique references were successfully retrieved; otherwise, false.</returns>
         protected override bool Pull(TypeReference? typeReference, out IEnumerable<UniqueReference>? uniqueReferences)
         {
             uniqueReferences = null;
@@ -257,6 +286,11 @@ namespace DiGi.SQLite.Classes
             return uniqueReferences_Temp != null && uniqueReferences_Temp.Count != 0;
         }
 
+        /// <summary>
+        /// Persists the specified wrapper items into the SQLite database, creating tables if they do not exist.
+        /// </summary>
+        /// <param name="wrapperItems">The collection of <see cref="WrapperItem"/> objects to be persisted.</param>
+        /// <returns>True if the persistence operation was successful; otherwise, false.</returns>
         protected override bool Push(IEnumerable<WrapperItem>? wrapperItems)
         {
             if (wrapperItems == null)

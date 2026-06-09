@@ -7,6 +7,13 @@ namespace DiGi.SQLite
 {
     public static partial class Convert
     {
+        /// <summary>
+        /// Converts a collection of serializable objects to a SQLite database at the specified path.
+        /// </summary>
+        /// <typeparam name="T">The type of serializable objects, which must implement <see cref="ISerializableObject"/>.</typeparam>
+        /// <param name="serializableObjects">The collection of objects to be converted and stored in the SQLite database.</param>
+        /// <param name="path">The file system path where the SQLite database should be created or updated.</param>
+        /// <returns>True if the conversion was successful; otherwise, false.</returns>
         public static bool ToSQLite<T>(this IEnumerable<T> serializableObjects, string path) where T : ISerializableObject
         {
             if (string.IsNullOrWhiteSpace(path) || !System.IO.Directory.Exists(System.IO.Path.GetDirectoryName(path)))
@@ -37,6 +44,13 @@ namespace DiGi.SQLite
             return result;
         }
 
+        /// <summary>
+        /// Converts a collection of serializable objects to a SQLite database using an existing connection.
+        /// </summary>
+        /// <typeparam name="T">The type of serializable objects, which must implement <see cref="ISerializableObject"/>.</typeparam>
+        /// <param name="serializableObjects">The collection of objects to be converted and stored in the SQLite database.</param>
+        /// <param name="sqliteConnection">An open connection to the SQLite database.</param>
+        /// <returns>True if the conversion was successful; otherwise, false.</returns>
         public static bool ToSQLite<T>(this IEnumerable<T> serializableObjects, SqliteConnection sqliteConnection) where T : ISerializableObject
         {
             if (serializableObjects == null)
